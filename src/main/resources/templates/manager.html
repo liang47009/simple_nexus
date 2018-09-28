@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Maven</title>
+</head>
+<body>
+<input type="button" value="add" id="add"/>
+<input type="button" value="remove" id="remove"/>
+<!--[[${urls}]]-->
+<code class="language-java">
+    <ul th:each="lm:${urls}">          
+        <li th:each="entry:${lm}" th:text="${entry.name}"/>
+        <li th:each="entry:${lm}" th:text="${entry.url}"/>
+    </ul>
+</code>  
+<!--
+<form id="login-form" th:action="@{/addStudent}"
+      th:object="${stuReqBean}" method="POST">
+    <div class="student" th:each="stuIter,rowStat:${stuReqBean.students}">
+        <input type="text" class="firstName" value=""
+               th:field="*{students[__${rowStat.index}__].firstName}"/>
+        <input type="text" class="school" value=""
+               th:field="*{students[__${rowStat.index}__].school}"/>
+    </div>
+</form>
+-->
+
+</body>
+</html>
