@@ -18,7 +18,8 @@ public class MavenService {
         if (c.isEmpty()) {
             c.add(new MavenProxyUrl("google", "https://dl.google.com/dl/android/maven2/"));
             c.add(new MavenProxyUrl("jcenter", "https://jcenter.bintray.com/"));
-            c.add(new MavenProxyUrl("mavenCenter", "https://repo1.maven.org/maven2/"));
+            c.add(new MavenProxyUrl("mavenRepo1", "https://repo1.maven.org/maven2/"));
+            c.add(new MavenProxyUrl("mavenCenter", "http://central.maven.org/maven2/"));
             mavenRepository.saveAll(c);
         }
         return c;
