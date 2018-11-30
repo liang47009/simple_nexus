@@ -12,11 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Collection;
+
+import static javax.servlet.http.HttpServletResponse.SC_OK;
 
 @Controller
 public class IndexController {
@@ -40,32 +39,16 @@ public class IndexController {
         int position = url.indexOf(BASE_URL) + BASE_URL.length();
         url.delete(0, position);
 
-        position = url.lastIndexOf("/");
-        if (position < 0) {
-            return;
-        }
-        String directory = url.substring(0, position);
-        String fileName = url.substring(position + 1, url.length());
-
-        File base_direcotry = new File(BASE_PATH + directory);
-        if (!base_direcotry.exists()) {
-            boolean mkdir = base_direcotry.mkdirs();
-            if (!mkdir) {
-                logComponent.e("mkdirs failed: " + url);
-            }
-        }
-
         InputStream in = null;
         OutputStream out = null;
+        int downloadRet = 0;
         try {
-            boolean downloadRet = false;
-            File repoFile = new File(BASE_PATH + url.toString());
+            String filePath = BASE_PATH + url.toString();
+            File repoFile = new File(filePath);
             if (!repoFile.exists()) {
-                downloadRet = urlComponent.downloadFromURL(url.toString(), directory, fileName);
-            } else {
-                downloadRet = true;
+                downloadRet = urlComponent.downloadFromURL(url.toString(), filePath);
             }
-            if (downloadRet) {
+            if (downloadRet == SC_OK) {
                 in = new FileInputStream(repoFile);
                 int len = 0;
                 byte[] buffer = new byte[1024];
@@ -75,11 +58,18 @@ public class IndexController {
                 }
             } else {
                 // download failed
-                logComponent.e("download failed:" + url);
+                logComponent.e("download failed:" + url + ", " + downloadRet);
             }
         } catch (Exception e) {
             logComponent.e("index :" + url + " failed:" + e.getMessage());
         } finally {
+            if (downloadRet != SC_OK) {
+                try {
+                    response.sendError(downloadRet, "download file error!");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             StreamUtils.closeOutputStream(out);
             StreamUtils.closeInputStream(in);
         }

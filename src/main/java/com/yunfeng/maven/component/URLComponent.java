@@ -7,13 +7,15 @@ import com.yunfeng.maven.util.StreamUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import javax.net.ssl.HttpsURLConnection;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+
+import static javax.servlet.http.HttpServletResponse.SC_OK;
 
 @Component("urlComponent")
 public class URLComponent {
@@ -27,53 +29,34 @@ public class URLComponent {
     @Resource(name = "logComponent")
     private LogComponent logComponent;
 
-    private Map<String, Object> cache = new HashMap<>();
-
     /**
-     * @param url       download url : com/xxx/xxx/1.x.x/xxx-1.x.x.jar
-     * @param directory save directory
-     * @param fileName  save file
+     * @param url      download url : com/xxx/xxx/1.x.x/xxx-1.x.x.jar
+     * @param fileName save file
      * @return successful
      */
-    public boolean downloadFromURL(String url, String directory, String fileName) {
-        boolean success = false;
-        Object ret = cache.get(url);
-        if (ret == null) {
-            ret = new Object();
-            logComponent.w("getlock null");
-            synchronized (ret) {
-                logComponent.w("getlocked null");
-                cache.put(url, ret);
-                Collection<MavenProxyUrl> c = mavenService.getProxyUrls();
-                for (MavenProxyUrl mavenProxyUrl : c) {
-                    String basePath = mavenProxyUrl.getUrl();
-                    success = download(basePath + url, IndexController.BASE_PATH + directory + "/", fileName);
-                    if (success) {
-                        break;
-                    }
-                }
-                cache.remove(url);
-            }
-        } else {
-            logComponent.w("getlock exists");
-            synchronized (ret) {
-                logComponent.w("getlocked exists");
+    public int downloadFromURL(String url, String fileName) {
+        int success = 0;
+        Collection<MavenProxyUrl> c = mavenService.getProxyUrls();
+        for (MavenProxyUrl mavenProxyUrl : c) {
+            String basePath = mavenProxyUrl.getUrl();
+            success = download(basePath + url, fileName);
+            if (success == SC_OK) {
+                break;
             }
         }
         return success;
     }
 
-    private boolean download(String url, String directory, String fileName) {
-        boolean success = false;
-        HttpsURLConnection conn = null;
+    private int download(String url, String fileName) {
+        HttpURLConnection conn = null;
         InputStream in = null;
         FileOutputStream fos = null;
-        final String realFileName = directory + fileName;
-        final String tempFileName = realFileName + "_temp";
+        int code = 0;
+        final String tempFileName = fileName + "_temp";
         int size = 0;// content file size
         int readSize = 0;// all read size
         try {
-            conn = (HttpsURLConnection) new URL(url).openConnection();
+            conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setConnectTimeout(5000);//5
             conn.setReadTimeout(5000);
 //            conn.setDoOutput(true);// 设置允许输出
@@ -82,8 +65,15 @@ public class URLComponent {
 //            conn.setRequestProperty("Charset", "UTF-8");
 //            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             /* 服务器返回的响应码 */
-            int code = conn.getResponseCode();
+            code = conn.getResponseCode();
             if (code == 200) {
+                File downloadFile = new File(fileName);
+                if (!downloadFile.getParentFile().exists()) {
+                    boolean mkdir = downloadFile.getParentFile().mkdirs();
+                    if (!mkdir) {
+                        logComponent.e("mkdirs failed: " + url);
+                    }
+                }
                 in = conn.getInputStream();
                 size = conn.getContentLength();
                 fos = new FileOutputStream(tempFileName);
@@ -105,12 +95,13 @@ public class URLComponent {
                 conn.disconnect();
             }
             if (size > 0 && readSize == size) {
-                success = fileComponent.renameFile(tempFileName, realFileName);
+                fileComponent.renameFile(tempFileName, fileName);
             } else {
                 logComponent.e("download size not match: " + size + ", context size: " + readSize);
+                code = HttpServletResponse.SC_NOT_FOUND;
             }
         }
-        return success;
+        return code;
     }
 
 
