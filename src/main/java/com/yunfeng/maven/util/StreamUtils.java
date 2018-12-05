@@ -12,7 +12,7 @@ public class StreamUtils {
                 out.flush();
                 out.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("closeOutputStream: " + e.getMessage());
             }
         }
     }
@@ -22,7 +22,7 @@ public class StreamUtils {
             try {
                 in.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("closeInputStream: " + e.getMessage());
             }
         }
     }
