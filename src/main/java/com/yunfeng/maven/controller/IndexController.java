@@ -47,6 +47,8 @@ public class IndexController {
             File repoFile = new File(filePath);
             if (!repoFile.exists()) {
                 downloadRet = urlComponent.downloadFromURL(url.toString(), filePath);
+            } else {
+                downloadRet = SC_OK;
             }
             if (downloadRet == SC_OK) {
                 in = new FileInputStream(repoFile);
