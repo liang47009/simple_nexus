@@ -27,6 +27,9 @@ public class MavenService {
             c.add(new MavenProxyUrl("ironsource-mobile-adapter", "http://dl.bintray.com/ironsource-mobile/android-adapters/"));
             c.add(new MavenProxyUrl("repo-spring", "https://repo.spring.io/plugins-snapshot/"));
             c.add(new MavenProxyUrl("m2-gradle", "https://plugins.gradle.org/m2/"));
+            c.add(new MavenProxyUrl("m2-gradle", "https://plugins.gradle.org/m2/"));
+            c.add(new MavenProxyUrl("SpringSource Enterprise Release", "http://repository.springsource.com/maven/bundles/release/"));
+            c.add(new MavenProxyUrl("SpringSource Enterprise External", "http://repository.springsource.com/maven/bundles/external/"));
             mavenRepository.saveAll(c);
         }
         return c;
