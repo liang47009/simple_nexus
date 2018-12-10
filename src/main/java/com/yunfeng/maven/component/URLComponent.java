@@ -1,6 +1,5 @@
 package com.yunfeng.maven.component;
 
-import com.yunfeng.maven.controller.IndexController;
 import com.yunfeng.maven.entity.MavenProxyUrl;
 import com.yunfeng.maven.service.MavenService;
 import com.yunfeng.maven.util.StreamUtils;
@@ -13,7 +12,10 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.*;
 
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 
@@ -29,19 +31,37 @@ public class URLComponent {
     @Resource(name = "logComponent")
     private LogComponent logComponent;
 
+    //用线程池发送请求
+    private ExecutorService executor = Executors.newCachedThreadPool();
+
     /**
      * @param url      download url : com/xxx/xxx/1.x.x/xxx-1.x.x.jar
      * @param fileName save file
      * @return successful
      */
-    public int downloadFromURL(String url, String fileName) {
+    public int downloadFromURL(final String url, final String fileName) {
         int success = 0;
+        List<Future<Integer>> futures = new ArrayList<>(8);
         Collection<MavenProxyUrl> c = mavenService.getProxyUrls();
         for (MavenProxyUrl mavenProxyUrl : c) {
-            String basePath = mavenProxyUrl.getUrl();
-            success = download(basePath + url, fileName);
-            if (success == SC_OK) {
-                break;
+            final String basePath = mavenProxyUrl.getUrl();
+            Future<Integer> future = executor.submit(new Callable<Integer>() {
+                @Override
+                public Integer call() {
+                    return download(basePath + url, fileName);
+                }
+            });
+            futures.add(future);
+        }
+
+        for (Future<Integer> future : futures) {
+            try {
+                success = future.get();
+                if (success == SC_OK) {
+                    break;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         return success;
